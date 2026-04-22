@@ -22,20 +22,25 @@ const PUNE_LOCATIONS = [
 ];
 
 // Realistic time-of-day base congestion for Pune
+// Always use IST (UTC+5:30) — Railway server runs in UTC
 const getTimeBasedCongestion = () => {
-  const hour = new Date().getHours();
-  const min  = new Date().getMinutes();
-  const t    = hour + min / 60;
+  const now        = new Date();
+  const utcMs      = now.getTime() + (now.getTimezoneOffset() * 60000); // UTC ms
+  const istMs      = utcMs + (5.5 * 60 * 60 * 1000);                   // IST = UTC+5:30
+  const ist        = new Date(istMs);
+  const t          = ist.getHours() + ist.getMinutes() / 60;            // IST decimal hours
 
   let base;
-  if      (t >= 8.0  && t <= 10.5) base = 0.70 + Math.random() * 0.20;
-  else if (t >= 12.0 && t <= 14.0) base = 0.40 + Math.random() * 0.20;
-  else if (t >= 17.0 && t <= 20.5) base = 0.72 + Math.random() * 0.22;
-  else if (t >= 22.0 || t <= 5.0 ) base = 0.05 + Math.random() * 0.10;
-  else                              base = 0.28 + Math.random() * 0.22;
+  if      (t >= 8.0  && t <= 10.5) base = 0.70 + Math.random() * 0.20; // Morning peak
+  else if (t >= 12.0 && t <= 14.0) base = 0.40 + Math.random() * 0.20; // Lunch
+  else if (t >= 17.0 && t <= 20.5) base = 0.72 + Math.random() * 0.22; // Evening peak
+  else if (t >= 22.0 || t <= 5.0 ) base = 0.05 + Math.random() * 0.10; // Night (low)
+  else                              base = 0.28 + Math.random() * 0.22; // Off-peak
 
+  console.log(`🕐 IST time: ${ist.getHours()}:${String(ist.getMinutes()).padStart(2,"0")} → base congestion: ${(base*100).toFixed(0)}%`);
   return parseFloat(Math.min(1, base).toFixed(3));
 };
+
 
 // Per-zone character multipliers
 const ZONE_MULTIPLIER = {
