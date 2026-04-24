@@ -9,22 +9,34 @@ const { predictTraffic, predictHourly } = require("../services/predictor");
 
 // ─── Get historical snapshots ─────────────────────────────────────────────────
 // ?range=24h (default) | 7d | 30d
+// OR ?start=ISO_STRING&end=ISO_STRING
 router.get("/history", async (req, res) => {
   try {
-    const range = req.query.range || "24h";
-    const now   = new Date();
-    let   since;
+    const { range, start, end } = req.query;
+    let queryFilter = {};
 
-    if      (range === "7d")  since = new Date(now - 7  * 24 * 60 * 60 * 1000);
-    else if (range === "30d") since = new Date(now - 30 * 24 * 60 * 60 * 1000);
-    else                      since = new Date(now - 24 *      60 * 60 * 1000); // 24h
+    if (start && end) {
+      queryFilter = {
+        capturedAt: { $gte: new Date(start), $lte: new Date(end) }
+      };
+    } else {
+      const defaultRange = range || "24h";
+      const now   = new Date();
+      let   since;
+
+      if      (defaultRange === "7d")  since = new Date(now - 7  * 24 * 60 * 60 * 1000);
+      else if (defaultRange === "30d") since = new Date(now - 30 * 24 * 60 * 60 * 1000);
+      else                             since = new Date(now - 24 *      60 * 60 * 1000); // 24h
+      
+      queryFilter = { capturedAt: { $gte: since } };
+    }
 
     const snapshots = await TrafficHistory
-      .find({ capturedAt: { $gte: since } })
+      .find(queryFilter)
       .sort({ capturedAt: 1 })
       .select("capturedAt avgCongestion totalVehicles heavyZones clearZones");
 
-    res.json({ success: true, range, count: snapshots.length, snapshots });
+    res.json({ success: true, count: snapshots.length, snapshots });
   } catch (err) {
     console.error("[Route /history]", err.message);
     res.status(500).json({ success: false, snapshots: [] });
