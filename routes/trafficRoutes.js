@@ -77,6 +77,23 @@ router.get("/history/:location", async (req, res) => {
 });
 
 
+// ─── Backup entire history database ─────────────────────────────────────────────
+router.get("/backup", async (req, res) => {
+  try {
+    const snapshots = await TrafficHistory.find().sort({ capturedAt: 1 });
+    
+    // Set headers to trigger a file download in the browser
+    res.setHeader("Content-Disposition", 'attachment; filename="traffic-history-backup.json"');
+    res.setHeader("Content-Type", "application/json");
+    
+    // Send as a formatted JSON string
+    res.send(JSON.stringify(snapshots, null, 2));
+  } catch (err) {
+    console.error("[Route /backup]", err.message);
+    res.status(500).json({ success: false, message: "Failed to generate backup" });
+  }
+});
+
 // ─── Generate fresh data ──────────────────────────────────────────────────────
 router.get("/generate", async (req, res) => {
   try {
