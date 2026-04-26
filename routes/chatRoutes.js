@@ -7,6 +7,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const Traffic        = require("../models/traffic");
 const TrafficHistory = require("../models/trafficHistory");
+const { predictHourly } = require("../services/predictor");
 
 // ─── POST /api/chat ────────────────────────────────────────────────────────────
 router.post("/", async (req, res) => {
@@ -66,6 +67,14 @@ router.post("/", async (req, res) => {
           .join("\n")
       : "  No history available yet.";
 
+    // ── 3. Fetch Predictions (Next 3 hours) ──────────────────────────────────
+    const predictions = await Promise.all(liveZones.map(z => predictHourly(z.location)));
+    const predictionsContext = predictions.map(p => {
+      const next3 = p.forecast.slice(1, 4); // index 1, 2, 3 (next 3 hours)
+      const parts = next3.map(f => `${f.label} (${f.pct}% ${f.status})`);
+      return `  - ${p.location}: ${parts.join(" -> ")}`;
+    }).join("\n");
+
     const systemPrompt = `You are PuneTrafficAI, an intelligent traffic assistant for the Smart Traffic Monitor system covering Pune, India.
 
 Current IST Date & Time: ${dateStr}, ${timeStr}
@@ -73,12 +82,15 @@ Current IST Date & Time: ${dateStr}, ${timeStr}
 LIVE TRAFFIC DATA (right now):
 ${zoneContext}
 
+NEXT 3-HOUR FORECAST:
+${predictionsContext}
+
 RECENT 24H HISTORY (latest 8 snapshots):
 ${historyContext}
 
 YOUR ROLE:
 - Answer questions about current Pune traffic conditions using the live data above
-- Identify congested zones, suggest alternate areas, recommend travel times
+- Identify congested zones, suggest alternate areas, recommend travel times using the Forecast data
 - Explain traffic patterns, compare current vs historical
 - Be concise, helpful, and specific — use actual numbers from the data
 - Use a friendly, conversational tone
