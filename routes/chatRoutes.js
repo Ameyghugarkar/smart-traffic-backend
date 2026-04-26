@@ -97,12 +97,17 @@ Do NOT make up data. Only use the figures provided above.`;
     });
 
     // Build chat history for multi-turn context
-    const chatHistory = history
-      .filter(m => m.role && m.text)
+    let chatHistory = history
+      .filter(m => m.role && m.text && !m.text.startsWith("⚠️"))
       .map(m => ({
         role:  m.role === "user" ? "user" : "model",
         parts: [{ text: m.text }],
       }));
+
+    // Gemini requires the first message in history to be from the 'user'
+    while (chatHistory.length > 0 && chatHistory[0].role !== "user") {
+      chatHistory.shift();
+    }
 
     const chat = model.startChat({ history: chatHistory });
     const result = await chat.sendMessage(message.trim());
