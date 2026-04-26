@@ -9,6 +9,7 @@ const connectDB          = require("./config/db");
 const trafficRoutes      = require("./routes/trafficRoutes");
 const incidentRoutes     = require("./routes/incidentRoutes");
 const authRoutes         = require("./routes/authRoutes");
+const chatRoutes         = require("./routes/chatRoutes");
 const { generateTrafficData } = require("./services/dataFetcher");
 const Traffic            = require("./models/traffic");
 const TrafficHistory     = require("./models/trafficHistory");
@@ -23,6 +24,7 @@ connectDB();
 app.use("/api/traffic",   trafficRoutes);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/auth",      authRoutes);
+app.use("/api/chat",      chatRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚦 Smart Traffic Backend Running");
